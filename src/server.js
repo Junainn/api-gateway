@@ -9,10 +9,26 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 const PORT = process.env.PORT;
-const TARGET_URL = process.env.TARGET_URL;
+
+const ROUTES = {
+    "/users": "http://localhost:4000",
+    "/products": "http://localhost:5000"
+}
+
+function getTargetService(url) {
+    return Object.keys(ROUTES).find(route => url.startsWith(route));
+}
+
 
 app.use(async (req, res) => {
     try {
+        const matchedRoute = getTargetService(req.originalUrl);
+        if (!matchedRoute) {
+            return res.status(404).json({ error: "Route not found" });
+        }
+
+        const TARGET_URL = ROUTES[matchedRoute];
+
         const response = await axios({
             method: req.method,
             url: `${TARGET_URL}${req.originalUrl}`,
