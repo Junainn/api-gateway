@@ -1,4 +1,4 @@
-import axios from 'axios';
+import { requestWithRetry } from '../config/axios.js';
 
 // Routing table
 const ROUTES = {
@@ -22,7 +22,7 @@ export async function router(req, res) {
 
         const target = ROUTES[matchedRoute];
 
-        const response = await axios({
+        const response = await requestWithRetry({
             method: req.method,
             url: `${target}${req.originalUrl}`,
             headers: req.headers,
@@ -32,8 +32,12 @@ export async function router(req, res) {
         res.status(response.status).send(response.data);
 
     } catch (error) {
+        console.error("Routing error:", error.message);
+
         if (error.response) {
             res.status(error.response.status).send(error.response.data);
+        } else if (error.code === 'ECONNABORTED') {
+            res.status(504).json({ error: "Gateway Timeout" });
         } else {
             res.status(500).json({ error: "Gateway error" });
         }
