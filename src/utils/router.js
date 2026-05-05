@@ -1,45 +1,58 @@
 import { requestWithRetry } from '../config/axios.js';
+import { getService } from './serviceRegistry.js';
+import { getNextInstance } from './loadBalancer.js';
+import {
+    canRequest,
+    recordFailure,
+    recordSuccess
+} from './circuitBreaker.js';
 
-// Routing table
-const ROUTES = {
-    "/users": "http://localhost:4000",
-    "/products": "http://localhost:5000"
-};
-
-function getTargetService(url) {
-    return Object.keys(ROUTES).find(route =>
-        url === route || url.startsWith(route + "/")
-    );
+function extractService(url) {
+    return url.split("/")[1];
 }
 
 export async function router(req, res) {
-    try {
-        const matchedRoute = getTargetService(req.originalUrl);
+    const serviceName = extractService(req.originalUrl);
+    const instances = getService(serviceName);
 
-        if (!matchedRoute) {
-            return res.status(404).json({ error: "No route found" });
-        }
+    if (!instances || instances.length === 0) {
+        return res.status(404).json({ error: "Service not found" });
+    }
 
-        const target = ROUTES[matchedRoute];
+    let lastError = null;
 
-        const response = await requestWithRetry({
-            method: req.method,
-            url: `${target}${req.originalUrl}`,
-            headers: req.headers,
-            data: req.body
+    const healthyInstances = instances.filter(instance => canRequest(instance));
+
+    if (healthyInstances.length === 0) {
+        return res.status(503).json({
+            error: "No healthy instances available"
         });
+    }
 
-        res.status(response.status).send(response.data);
+    for (let i = 0; i < healthyInstances.length; i++) {
+        const target = getNextInstance(serviceName, healthyInstances);
 
-    } catch (error) {
-        console.error("Routing error:", error.message);
+        try {
+            const response = await requestWithRetry({
+                method: req.method,
+                url: `${target}${req.originalUrl}`,
+                headers: req.headers,
+                data: req.body
+            });
 
-        if (error.response) {
-            res.status(error.response.status).send(error.response.data);
-        } else if (error.code === 'ECONNABORTED') {
-            res.status(504).json({ error: "Gateway Timeout" });
-        } else {
-            res.status(500).json({ error: "Gateway error" });
+            recordSuccess(target);
+
+            return res.status(response.status).send(response.data);
+
+        } catch (error) {
+            recordFailure(target);
+            lastError = error;
+
+            console.warn(`Instance failed: ${target}`);
         }
     }
+
+    return res.status(503).json({
+        error: "All service instances unavailable"
+    });
 }
