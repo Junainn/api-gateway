@@ -36,7 +36,10 @@ export async function router(req, res) {
             const response = await requestWithRetry({
                 method: req.method,
                 url: `${target}${req.originalUrl}`,
-                headers: req.headers,
+                headers: {
+                    ...req.headers,
+                    "x-request-id": req.requestId   
+                },
                 data: req.body
             });
 

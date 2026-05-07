@@ -8,6 +8,15 @@ app.use(express.json());
 
 const USER_PORT = process.env.USER_PORT || 4000;
 
+app.use((req, res, next) => {
+    console.log(JSON.stringify({
+        service: "user-service",
+        requestId: req.headers['x-request-id'],
+        path: req.path
+    }));
+    next();
+});
+
 app.get("/users", (req, res) => {
     res.json({ service: "User Service", data: ["user1", "user2"],PORT : USER_PORT });
 });

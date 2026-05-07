@@ -14,7 +14,8 @@ export async function rateLimit(req, res, next) {
             },
             {
                 headers: {
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    "x-request-id": req.requestId
                 }
             }
         );
