@@ -5,6 +5,13 @@ app.use(express.json());
 
 const PORT = 5000;
 
+app.get("/health", (req, res) => {
+
+    res.json({
+        status: "healthy"
+    });
+})
+
 app.get("/products", (req, res) => {
     res.json({ service: "Product Service", data: ["product1", "product2"] });
 });

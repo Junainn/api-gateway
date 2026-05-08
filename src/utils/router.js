@@ -1,11 +1,13 @@
 import { requestWithRetry } from '../config/axios.js';
 import { getService } from './serviceRegistry.js';
 import { getNextInstance } from './loadBalancer.js';
+import { healthState } from '../health/healthState.js';
 import {
     canRequest,
     recordFailure,
     recordSuccess
 } from './circuitBreaker.js';
+
 
 function extractService(url) {
     return url.split("/")[1];
@@ -21,7 +23,15 @@ export async function router(req, res) {
 
     let lastError = null;
 
-    const healthyInstances = instances.filter(instance => canRequest(instance));
+    const healthyInstances = instances.filter(instance => {
+
+        const state = healthState[instance];
+
+        // If never checked yet → assume healthy
+        if (!state) return true;
+
+        return state.healthy;
+    });
 
     if (healthyInstances.length === 0) {
         return res.status(503).json({
@@ -38,7 +48,7 @@ export async function router(req, res) {
                 url: `${target}${req.originalUrl}`,
                 headers: {
                     ...req.headers,
-                    "x-request-id": req.requestId   
+                    "x-request-id": req.requestId
                 },
                 data: req.body
             });

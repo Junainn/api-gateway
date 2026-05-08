@@ -17,6 +17,13 @@ app.use((req, res, next) => {
     next();
 });
 
+app.get("/health", (req, res) => {
+
+    res.json({
+        status: "healthy"
+    });
+});
+
 app.get("/users", (req, res) => {
     res.json({ service: "User Service", data: ["user1", "user2"],PORT : USER_PORT });
 });
