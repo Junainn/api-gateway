@@ -5,7 +5,7 @@ import { healthState } from "./healthState.js";
 
 const FAILURE_THRESHOLD = 3;
 
-function getAllInstances() {
+async function getAllInstances() {
 
     const services = ["users", "products"];
 
@@ -13,7 +13,8 @@ function getAllInstances() {
 
     for (const service of services) {
 
-        const serviceInstances = getService(service) || [];
+        const serviceInstances =
+            await getService(service) || [];
 
         instances.push(...serviceInstances);
     }
@@ -71,7 +72,7 @@ export function startHealthChecks() {
 
     setInterval(async () => {
 
-        const instances = getAllInstances();
+        const instances = await getAllInstances();
 
         for (const instance of instances) {
 

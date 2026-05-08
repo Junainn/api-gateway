@@ -15,7 +15,7 @@ function extractService(url) {
 
 export async function router(req, res) {
     const serviceName = extractService(req.originalUrl);
-    const instances = getService(serviceName);
+    const instances = await getService(serviceName);
 
     if (!instances || instances.length === 0) {
         return res.status(404).json({ error: "Service not found" });

@@ -1,13 +1,20 @@
-const services = {
-    users: [
-        "http://localhost:4000",
-        "http://localhost:4001"
-    ],
-    products: [
-        "http://localhost:5000"
-    ]
-};
+import redis from "../config/redis.js";
 
-export function getService(serviceName) {
-    return services[serviceName];
+export async function getService(
+    serviceName
+) {
+
+    const pattern =
+        `service:${serviceName}|*`;
+
+    const keys =
+        await redis.keys(pattern);
+
+    return keys.map(key => {
+
+        const parts = key.split("|");
+
+        return parts[1];
+
+    });
 }
