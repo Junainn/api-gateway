@@ -7,7 +7,7 @@ const FAILURE_THRESHOLD = 3;
 
 async function getAllInstances() {
 
-    const services = ["users", "products"];
+    const services = ["users", "products", "auth"];
 
     let instances = [];
 

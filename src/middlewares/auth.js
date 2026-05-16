@@ -1,11 +1,48 @@
-export function auth(req, res, next) {
-    const apiKey = req.headers['x-api-key'];
+import { verifyToken }
+    from "../auth/verifyToken.js";
 
-    if(!apiKey){
-        return res.status(401).json({ error: "API key missing" });
+
+const publicRoutes = ["/auth/login"];
+
+export function auth(
+    req,
+    res,
+    next
+) {
+
+    // SKIP JWT FOR PUBLIC ROUTES
+    if (
+        publicRoutes.includes(req.path)
+    ) {
+        return next();
     }
 
-    req.user = { apiKey }; // In real scenarios, you'd verify the API key and fetch user details
+    const authHeader =
+        req.headers.authorization;
 
-    next();
+    if (!authHeader) {
+
+        return res.status(401).json({
+            error: "Missing token"
+        });
+    }
+
+    const token =
+        authHeader.split(" ")[1];
+
+    try {
+
+        const decoded =
+            verifyToken(token);
+
+        req.user = decoded;
+
+        next();
+
+    } catch (error) {
+        
+        return res.status(401).json({
+            error: "Invalid token"
+        });
+    }
 }
